@@ -1,0 +1,5 @@
+# ключ Google і знімки панорам (матеріал Google) у репозиторій не кладемо
+панорами/google_key.txt
+панорами/*.jpg
+панорами/panoramy.json
+__pycache__/

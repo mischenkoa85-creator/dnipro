@@ -1,0 +1,231 @@
+<title>Автовокзал Дніпро 3D</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+/* Layout: 3D сцена на весь екран, зверху рядок видів, знизу аркуш з часом і цифрами */
+:root{
+  --bg:#eef1f4; --panel:#ffffffee; --fg:#17222c; --muted:#5a6875; --line:#cfd6dd;
+  --accent:#0b6fb8; --sun:#c98a06; --roof:#1f4f8f; --can:#0f8a7a;
+  --font:"Inter",system-ui,Segoe UI,Arial,sans-serif; --head:"Space Grotesk","Inter",system-ui,sans-serif;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#10161c; --panel:#18222cee; --fg:#e8eef3; --muted:#9aa8b5; --line:#2c3a47;
+  --accent:#58b4f0; --sun:#f0b63a; --roof:#7fb0ee; --can:#4fd0bd; color-scheme:dark } }
+:root[data-theme="dark"]{
+  --bg:#10161c; --panel:#18222cee; --fg:#e8eef3; --muted:#9aa8b5; --line:#2c3a47;
+  --accent:#58b4f0; --sun:#f0b63a; --roof:#7fb0ee; --can:#4fd0bd; color-scheme:dark }
+html,body{height:100%}
+body{background:var(--bg);color:var(--fg);font-family:var(--font);overflow:hidden;position:relative}
+#c{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none}
+.bar{position:absolute;left:0;right:0;top:0;display:flex;gap:6px;overflow-x:auto;
+  padding-block:8px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+  padding-top:calc(8px + env(safe-area-inset-top,0px))}
+button{font:600 13px var(--font);color:var(--fg);background:var(--panel);border:1px solid var(--line);
+  border-radius:8px;padding:7px 11px;white-space:nowrap;cursor:pointer}
+button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#fff}
+button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.sheet{position:absolute;left:0;right:0;bottom:0;background:var(--panel);border-top:1px solid var(--line);
+  padding-block:10px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+  padding-bottom:calc(10px + env(safe-area-inset-bottom,0px));max-height:52%;overflow-y:auto;backdrop-filter:blur(6px)}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.row label{font-size:12px;color:var(--muted)}
+#time{flex:1 1 140px;min-width:0;accent-color:var(--sun)}
+#tl{font:600 13px var(--head);font-variant-numeric:tabular-nums;min-width:44px}
+h1{font:700 16px var(--head);margin:0}
+.sum{font-size:13px;color:var(--muted);margin:2px 0 0}
+.sum b{color:var(--fg);font-variant-numeric:tabular-nums}
+#more{display:grid;gap:12px;margin-top:10px}
+.tw{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:13px;font-variant-numeric:tabular-nums}
+th,td{text-align:right;padding:5px 8px;border-bottom:1px solid var(--line);white-space:nowrap}
+th:first-child,td:first-child,th:nth-child(2),td:nth-child(2){text-align:left}
+#more div+div table td:nth-child(2){white-space:normal}
+th{color:var(--muted);font-weight:600}
+tfoot td{font-weight:700;border-bottom:0}
+.sw{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px}
+.months{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:4px;align-items:end;height:110px}
+.months div{display:flex;flex-direction:column;justify-content:flex-end;align-items:center;height:100%;font-size:10px;color:var(--muted);min-width:0}
+.months i{display:block;width:100%;background:var(--sun);border-radius:3px 3px 0 0}
+.months span{font-variant-numeric:tabular-nums;color:var(--fg);font-size:10px}
+.note{font-size:12px;color:var(--muted);max-width:70ch;margin:0}
+h2{font:600 13px var(--head);margin:0 0 6px}
+</style>
+
+<canvas id="c" aria-label="3D-модель автовокзалу з панелями"></canvas>
+<div class="bar" id="views"></div>
+<div class="sheet">
+  <div class="row" style="justify-content:space-between">
+    <div style="min-width:0">
+      <h1>Центральний автовокзал «Дніпро» — концепція СЕС</h1>
+      <p class="sum" id="sum"></p>
+    </div>
+    <span class="row" style="gap:6px"><button id="lab" aria-pressed="true">Підписи</button><button id="tog" aria-expanded="false">Цифри ▾</button></span>
+  </div>
+  <div class="row" style="margin-top:8px">
+    <label for="time">Час</label><input id="time" type="range" min="5" max="21" step="0.25" value="12"><span id="tl">12:00</span>
+    <span id="seasons" class="row" style="gap:4px"></span>
+    <span id="scen" class="row" style="gap:4px"></span>
+  </div>
+  <div id="more" hidden>
+    <div><h2>Зони</h2><div class="tw"><table id="tb"></table></div></div>
+    <div><h2>Генерація по місяцях, МВт·год</h2><div class="months" id="months"></div></div>
+    <div><h2>Оточення</h2><div class="tw"><table><tbody>
+<tr><td>Північ</td><td>Залізничні колії станції Дніпро-Головний, зелена смуга вздовж колій</td></tr>
+<tr><td>Захід</td><td>Майданчик автобусів, Курчатовський ринок, гаражі та склади</td></tr>
+<tr><td>Південь</td><td>Вулиця 128-ї Бригади Тероборони з трамваєм (маршрути 11, 14, 15, мережа 600 В), парк Пам'яті та Примирення, АЗС</td></tr>
+<tr><td>Схід</td><td>Готель Premier Abri (6 поверхів), офісна вежа (13 поверхів), прокуратура, ТЦ «Слов'янський»</td></tr>
+<tr><td>Тінь</td><td>Висотки стоять на сході й південному сході: можуть затіняти дах залу вранці взимку — перевіряється повзунком часу</td></tr>
+<tr><td>Електрика</td><td>Підстанції та лінії живлення на відкритих картах не позначені — уточнюється</td></tr>
+</tbody></table></div></div>
+<p class="note">Базовий сценарій — навіси рядами з проїздами; максимальний — суцільні навіси над стоянками, новий навіс уздовж залу, північний блок і башта. Питомий виробіток — PVGIS для кожної площини; тінь від будівель і дерев порахована по моделі для 12 місяців. Концепція за супутниковим знімком. Контури — з OpenStreetMap, висоти будівель оцінено, генерація — PVGIS для Дніпра. Належність стоянок, несуча здатність даху і місця обладнання уточнюються.</p>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script>
+const D=/*DATA*/;
+const SAT="data:image/jpeg;base64,/*SAT*/";
+const cv=document.getElementById('c');
+const MOB=Math.min(innerWidth,innerHeight)<700;
+const R=new THREE.WebGLRenderer({canvas:cv,antialias:!MOB,powerPreference:'high-performance'});
+R.setPixelRatio(Math.min(devicePixelRatio,MOB?1.25:1.5));R.shadowMap.enabled=true;R.shadowMap.autoUpdate=false;R.shadowMap.type=THREE.PCFSoftShadowMap;
+const scene=new THREE.Scene();scene.background=new THREE.Color(0xbfd3e6);
+const cam=new THREE.PerspectiveCamera(45,1,1,6000);
+const ctl=new THREE.OrbitControls(cam,cv);ctl.maxPolarAngle=Math.PI/2-0.05;ctl.enableDamping=true;
+let camMv=false;ctl.addEventListener('change',()=>camMv=true);
+let dirty=true,warm=90;
+// ground
+const tex=new THREE.TextureLoader().load(SAT,()=>dirty=true);
+const g=new THREE.Mesh(new THREE.PlaneGeometry(D.w,D.h),new THREE.MeshLambertMaterial({map:tex}));
+g.rotation.x=-Math.PI/2;g.receiveShadow=true;scene.add(g);
+// x east, world z = south (data y)
+function winTex(wall,glass,wide){const c=document.createElement('canvas');c.width=c.height=64;const x=c.getContext('2d');
+  x.fillStyle=wall;x.fillRect(0,0,64,64);x.fillStyle=glass;
+  if(wide){x.fillRect(3,8,58,44)}else{x.fillRect(10,14,20,30);x.fillRect(40,14,20,30)}
+  x.fillStyle='rgba(255,255,255,.25)';x.fillRect(wide?3:10,wide?8:14,wide?58:20,3);
+  const t=new THREE.CanvasTexture(c);t.wrapS=t.wrapT=THREE.RepeatWrapping;return t}
+function ribTex(wall){const c=document.createElement('canvas');c.width=c.height=64;const x=c.getContext('2d');
+  x.fillStyle=wall;x.fillRect(0,0,64,64);x.fillStyle='#2f4558';x.fillRect(0,14,64,26);x.fillStyle=wall;for(let i=0;i<64;i+=16)x.fillRect(i,14,2,26);
+  const t=new THREE.CanvasTexture(c);t.wrapS=t.wrapT=THREE.RepeatWrapping;return t}
+const TX={};
+function wallMat(color,kind){const k=color+'|'+(kind||'');if(TX[k])return TX[k];
+  const hex='#'+color.toString(16).padStart(6,'0');
+  const t=kind=='glass'?winTex(hex,'#3d6f95',true):kind=='ribbon'?ribTex(hex):winTex(hex,'#33485c',false);
+  t.repeat.set(kind=='glass'?1/4:1/6,kind=='glass'?1/5.5:kind=='ribbon'?1/3.5:1/3.2);
+  return TX[k]=new THREE.MeshLambertMaterial({map:t})}
+function extr(pts,h,color,y0,kind,roofc){
+  const s=new THREE.Shape();pts.forEach((p,i)=>i?s.lineTo(p[0],-p[1]):s.moveTo(p[0],-p[1]));
+  const geo=new THREE.ExtrudeGeometry(s,{depth:h,bevelEnabled:false});
+  const m=new THREE.Mesh(geo,(h<4.5||!kind&&y0)?new THREE.MeshLambertMaterial({color}):[new THREE.MeshLambertMaterial({color:roofc||0x8d9299}),wallMat(color,kind)]);
+  m.rotation.x=-Math.PI/2;m.position.y=y0||0;m.castShadow=true;m.receiveShadow=true;m.matrixAutoUpdate=false;m.updateMatrix();scene.add(m);return m;
+}
+const WC=[0xd9d2c4,0xcfd4d9,0xe2dccf,0xc9c2b6,0xd6dbe0];
+D.buildings.forEach((b,i)=>extr(b.p,b.h,WC[i%WC.length]));
+D.parts.forEach(p=>extr(p.p,p.h,p.c,p.y0,p.k,p.r));
+{const g=new THREE.BufferGeometry(),v=[];D.hallroof.forEach(t=>t.forEach(q=>v.push(q[0],q[2],q[1])));
+ g.setAttribute('position',new THREE.Float32BufferAttribute(v,3));g.computeVertexNormals();
+ const m=new THREE.Mesh(g,new THREE.MeshLambertMaterial({color:0x4c5056,side:THREE.DoubleSide}));m.castShadow=true;m.receiveShadow=true;scene.add(m)}
+const COL={roof:0x1f4f8f,canopy:0x0f6f8a};
+const postM=new THREE.MeshLambertMaterial({color:0x8c96a0});
+const ZG=[];
+D.zones.forEach(z=>{
+  const G=new THREE.Group();G.userData.sc=z.sc;ZG.push(G);scene.add(G);
+  const a=-z.ang*Math.PI/180, top=z.kind=='roof'?z.h+0.5:z.h;
+  const geo=new THREE.BoxGeometry(z.seg-0.12,0.18,z.depth-0.15);
+  const mat=new THREE.MeshPhongMaterial({color:COL[z.kind],shininess:70,specular:0x445566});
+  const im=new THREE.InstancedMesh(geo,mat,z.cells.length);im.castShadow=true;im.receiveShadow=true;
+  const o=new THREE.Object3D();
+  z.cells.forEach((c,i)=>{o.position.set(c[0],c.length>2?c[2]:top,c[1]);o.rotation.set(0,a,0);o.updateMatrix();im.setMatrixAt(i,o.matrix)});
+  G.add(im);
+  if(z.kind=='canopy'){
+    const pg=new THREE.CylinderGeometry(0.18,0.18,z.h,8);
+    const idx=z.cells.map((c,i)=>i).filter(i=>i%3==0);
+    const pm=new THREE.InstancedMesh(pg,postM,idx.length);pm.castShadow=true;
+    idx.forEach((ci,k)=>{const c=z.cells[ci];o.position.set(c[0],z.h/2,c[1]);o.rotation.set(0,0,0);o.updateMatrix();pm.setMatrixAt(k,o.matrix)});
+    G.add(pm);
+  }
+});
+// sign and lattice tower (за панорамою 2015 р., місце вежі приблизне)
+{const c=document.createElement('canvas');c.width=512;c.height=80;const x=c.getContext('2d');x.font='700 64px Arial';x.fillStyle='#bfe3ee';x.textBaseline='middle';x.fillText('АВТОВОКЗАЛ',8,42);
+ const s=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(c)}));s.scale.set(32,5,1);s.position.set(D.sign[0],15.5,D.sign[1]);scene.add(s);
+ const tw=new THREE.Mesh(new THREE.BoxGeometry(4,42,4,1,10,1),new THREE.MeshBasicMaterial({color:0x8a8f96,wireframe:true}));tw.position.set(D.tower[0],21,D.tower[1]);scene.add(tw)}
+// trees
+{const tg=new THREE.IcosahedronGeometry(1,0),tm=new THREE.MeshLambertMaterial({color:0x3f7d3a});
+ const TR=MOB?D.trees.filter((c,i)=>i%2==0):D.trees;const ti=new THREE.InstancedMesh(tg,tm,TR.length);ti.castShadow=!MOB;const o=new THREE.Object3D();
+ TR.forEach((c,i)=>{const h=c[2];o.position.set(c[0],h*0.6,c[1]);o.scale.set(h*0.45,h*0.6,h*0.45);o.rotation.set(0,i,0);o.updateMatrix();ti.setMatrixAt(i,o.matrix)});scene.add(ti)}
+// rails and tram
+D.lines.forEach(l=>{const q=l.p.filter(p=>Math.abs(p[0])<D.w/2&&Math.abs(p[1])<D.h/2);if(q.length<2)return;const g=new THREE.BufferGeometry().setFromPoints(q.map(p=>new THREE.Vector3(p[0],0.4,p[1])));
+ scene.add(new THREE.Line(g,new THREE.LineBasicMaterial({color:l.k=='tram'?0xd0402f:0x3a3f46})))});
+// labels
+const LG=new THREE.Group();scene.add(LG);
+D.labels.forEach(l=>{const c=document.createElement('canvas'),x=c.getContext('2d');x.font='600 28px Arial';
+ const w=Math.ceil(x.measureText(l.t).width)+28;c.width=w;c.height=48;x.font='600 28px Arial';
+ x.fillStyle='rgba(16,24,32,.82)';x.fillRect(0,0,w,48);x.fillStyle='#fff';x.textBaseline='middle';x.fillText(l.t,14,25);
+ const s=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(c),depthTest:false}));
+ s.userData.sc=l.sc;s.scale.set(w/48*9,9,1);s.position.set(l.p[0],l.h+10,l.p[1]);LG.add(s)});
+// light
+scene.add(new THREE.HemisphereLight(0xffffff,0x667788,0.55));
+const sun=new THREE.DirectionalLight(0xffffff,0.95);sun.castShadow=true;
+sun.shadow.mapSize.set(MOB?2048:4096,MOB?2048:4096);const sc=sun.shadow.camera;sc.left=-420;sc.right=420;sc.top=420;sc.bottom=-420;sc.near=10;sc.far=2500;
+scene.add(sun);scene.add(sun.target);
+const SEAS=[['Зима',355],['Весна',80],['Літо',172],['Осінь',266]];let doy=172;
+function sunPos(h){
+  const lat=48.4748*Math.PI/180,dec=23.44*Math.PI/180*Math.sin(2*Math.PI*(284+doy)/365);
+  const ha=(h-12-0.33)*15*Math.PI/180; // ~ літній час, грубо
+  const el=Math.asin(Math.sin(lat)*Math.sin(dec)+Math.cos(lat)*Math.cos(dec)*Math.cos(ha));
+  const az=Math.atan2(Math.sin(ha),Math.cos(ha)*Math.sin(lat)-Math.tan(dec)*Math.cos(lat))+Math.PI; // від півночі за годинниковою
+  return {el,az};
+}
+function setSun(){
+  const h=+document.getElementById('time').value;const p=sunPos(h);
+  document.getElementById('tl').textContent=String(Math.floor(h)).padStart(2,'0')+':'+String(Math.round(h%1*60)).padStart(2,'0');
+  const e=Math.max(p.el,0.02),r=1100;
+  sun.position.set(r*Math.cos(e)*Math.sin(p.az),r*Math.sin(e),-r*Math.cos(e)*Math.cos(p.az));
+  sun.intensity=p.el>0?0.25+0.75*Math.min(1,Math.sin(p.el)*1.6):0.02;
+  scene.background.set(p.el>0?0xbfd3e6:0x1a2330);dirty=true;
+}
+document.getElementById('time').addEventListener('input',setSun);
+const sb=document.getElementById('seasons');
+SEAS.forEach(s=>{const b=document.createElement('button');b.textContent=s[0];b.setAttribute('aria-pressed',s[1]==doy);
+  b.onclick=()=>{doy=s[1];[...sb.children].forEach(x=>x.setAttribute('aria-pressed',x==b));setSun()};sb.appendChild(b)});
+// views
+function cen(key){const z=D.zones.find(z=>z.key==key);let x=0,y=0;z.outline.forEach(p=>{x+=p[0];y+=p[1]});return[x/z.outline.length,y/z.outline.length]}
+const cA=cen('A'),cC=cen('C'),cD=cen('D');
+const cS=[(cA[0]+cD[0])/2,(cA[1]+cD[1])/2];
+const VIEWS=[['Огляд',[cS[0]+60,230,cS[1]+330],[cS[0],0,cS[1]]],['Околиці',[cS[0]+120,430,cS[1]+620],[cS[0]+30,0,cS[1]-20]],['Зверху',[cS[0],520,cS[1]+1],[cS[0],0,cS[1]]],
+ ['Дах вокзалу',[cA[0]+90,95,cA[1]+120],[cA[0]-15,10,cA[1]]],
+ ['Майданчик автобусів',[cC[0]-20,90,cC[1]+150],[cC[0],4,cC[1]]],
+ ['Під навісом',[cC[0]+55,7,cC[1]+70],[cC[0],4,cC[1]]],
+ ['Стоянки',[cD[0]-40,80,cD[1]+140],[cD[0]+30,3,cD[1]]]];
+const vb=document.getElementById('views');
+function go(v,b){const k=cam.aspect<1?Math.min(2.2,1/cam.aspect):1;cam.position.set(v[2][0]+(v[1][0]-v[2][0])*k,v[2][1]+(v[1][1]-v[2][1])*k,v[2][2]+(v[1][2]-v[2][2])*k);ctl.target.set(...v[2]);ctl.update();[...vb.children].forEach(x=>x.setAttribute('aria-pressed',x==b));camMv=true}
+VIEWS.forEach((v,i)=>{const b=document.createElement('button');b.textContent=v[0];b.onclick=()=>go(v,b);vb.appendChild(b)});
+// numbers
+const f=n=>n.toLocaleString('uk-UA');
+const css=k=>k=='roof'?'var(--roof)':'var(--can)';
+const MN=['січ','лют','бер','кві','тра','чер','лип','сер','вер','жов','лис','гру'];
+let SC='base';
+function nums(){
+  const zs=D.zones.filter(z=>z.sc==SC||z.sc=='both'),mon=D.months[SC];
+  const kw=zs.reduce((s,z)=>s+z.kw,0),mwh=Math.round(mon.reduce((s,v)=>s+v,0));
+  ZG.forEach(g=>g.visible=g.userData.sc==SC||g.userData.sc=='both');
+  LG.children.forEach(s=>{if(s.userData.sc)s.visible=s.userData.sc==SC||s.userData.sc=='both'});
+  document.getElementById('sum').innerHTML=`Панелі <b>${f(kw)} кВт</b> · за рік <b>${f(mwh)} МВт·год</b> · червень <b>${f(Math.round(mon[5]/30*10)/10)}</b>, грудень <b>${f(Math.round(mon[11]/31*10)/10)} МВт·год за добу</b>`;
+  document.getElementById('tb').innerHTML='<thead><tr><th>Зона</th><th>Що це</th><th>Площа, м²</th><th>Панелі, м²</th><th>кВт</th><th>кВт·год/кВт</th><th>Тінь, %</th><th>МВт·год/рік</th><th>Як покладено</th></tr></thead><tbody>'+
+   zs.map(z=>`<tr><td><span class="sw" style="background:${css(z.kind)}"></span>${z.key}</td><td>${z.name}</td><td>${f(z.area)}</td><td>${f(z.parea)}</td><td>${f(z.kw)}</td><td>${f(z.spec)}</td><td>${f(z.shade)}</td><td>${f(z.mwh)}</td><td style="text-align:left">${z.note||''}</td></tr>`).join('')+
+   `</tbody><tfoot><tr><td></td><td>Разом</td><td></td><td>${f(zs.reduce((s,z)=>s+z.parea,0))}</td><td>${f(kw)}</td><td></td><td></td><td>${f(mwh)}</td><td></td></tr></tfoot>`;
+  const mx=Math.max(...D.months.max);
+  document.getElementById('months').innerHTML=mon.map((v,i)=>`<div><span>${Math.round(v)}</span><i style="height:${Math.round(v/mx*70)}px"></i>${MN[i]}</div>`).join('');
+  dirty=true;
+}
+const scb=document.getElementById('scen');
+[['base','Базовий'],['max','Максимальний']].forEach(s=>{const b=document.createElement('button');b.textContent=s[1];b.setAttribute('aria-pressed',s[0]==SC);
+  b.onclick=()=>{SC=s[0];[...scb.children].forEach(x=>x.setAttribute('aria-pressed',x==b));nums()};scb.appendChild(b)});
+nums();
+const lab=document.getElementById('lab');lab.onclick=()=>{LG.visible=!LG.visible;lab.setAttribute('aria-pressed',LG.visible)};
+const tog=document.getElementById('tog'),more=document.getElementById('more');
+tog.onclick=()=>{more.hidden=!more.hidden;tog.setAttribute('aria-expanded',!more.hidden);tog.textContent=more.hidden?'Цифри ▾':'Цифри ▴'};
+function size(){const w=cv.clientWidth,h=cv.clientHeight;R.setSize(w,h,false);cam.aspect=w/h;cam.updateProjectionMatrix();camMv=true}
+addEventListener('resize',size);size();setSun();go(VIEWS[0],vb.children[0]);
+(function loop(){requestAnimationFrame(loop);const mv=ctl.update();if(dirty)warm=Math.max(warm,3);if(mv||camMv||dirty||warm>0){camMv=false;if(dirty||warm>0)R.shadowMap.needsUpdate=true;R.render(scene,cam);dirty=false;if(warm>0)warm--}})();
+</script>
