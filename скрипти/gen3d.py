@@ -84,16 +84,16 @@ for i in range(9):
     f=i/8; q=(1010+(1183-1010)*f, 988+(925-988)*f); v=sq(q[0],q[1],2.6,2.6,rang); vents.append(v); part(v,1.6,0xb9bdc2,"",round(T+2-2*min(1,ridge.distance(Point(oldpx(*q)))/dSE),2))
 unit=sq(1203,902,6,3.5,rang); part(unit,2.6,0xe4e6e8,"",round(T+2-2*min(1,ridge.distance(Point(oldpx(1203,902)))/dSE),2))
 part(sq(1105,725,2,2,rang),1.2,0xb9bdc2,"",round(T+2-2*min(1,ridge.distance(Point(oldpx(1105,725)))/dNW),2))
-obst=unary_union(vents+[unit]).buffer(1.5)
-edgeSE=LineString([oldpx(*Sp),oldpx(*SEp)]).buffer(8)
+obst=unary_union(vents+[unit]).buffer(0.7)
+edgeSE=LineString([oldpx(*Sp),oldpx(*SEp)]).buffer(1.0)
 planeSE=P(Ep,SEp,Sp).difference(edgeSE).difference(obst).difference(ridge.buffer(1.5))
 planeNW=P(Np,Ep,Sp,Wp_).difference(ridge.buffer(1.5))
 def big(g): return g if g.geom_type=="Polygon" else max(g.geoms,key=lambda q:q.area)
 cellsA=[]
 nA=[]
 for pl,dm in ((big(planeSE),dSE),(big(planeNW),dNW)):
-    nA.append(len(fill(pl,rang,ML,0.3,MW+GAP,1.5)))
-    for c in fill(pl,rang,ML,0.3,MW+GAP,1.5):
+    nA.append(len(fill(pl,rang,ML,0.3,MW+GAP,0.8)))
+    for c in fill(pl,rang,ML,0.3,MW+GAP,0.8):
         d=ridge.distance(Point(c)); cellsA.append([c[0],c[1],round(T+2-2*min(1,d/dm)+0.35,2)])
 def addz(key,name,pg,cells,dens,yld,h,ang,kind="roof",depth=4.6,seg=2.4):
     area=len(cells)*ML*MW; kw=len(cells)*MP; depth,seg=ML,MW
@@ -119,15 +119,18 @@ part(sq(1150,690,4.2,4.2,0),20,0xb5b3ad,"",0,0x8d8b86)                          
 import random as _r; _r.seed(5)
 for q in ((735,880),(760,885),(785,890),(812,895),(838,905),(750,865),(800,870)): part(sq(q[0],q[1],1.6,1.6,0),1.1,0xb9bdc2,"",14)
 cellsB=[]
-for pg,hh in ((wingW,WH),(wingE,WH),(centre,CH)):
-    for c in fill(pg,main_angle(pg),ML,0.9,MW+GAP,1.5): cellsB.append([c[0],c[1],hh+0.45])
-addz("B","Дахи адмінчастини",unary_union([wingW,wingE,centre]).convex_hull,cellsB,205,997,WH,wang,depth=2.3)
+skyl=P((700,910),(712,930),(795,962),(800,942))
+for pg,hh in ((wingW,WH),(wingE,WH),(centre.difference(skyl.buffer(0.3)),CH),(terr,6.5+1.5),(skyl,WH+2.2),(step,15.0)):
+    pg=big(pg)
+    for c in fill(pg,main_angle(pg),ML,0.3,MW+GAP,0.5): cellsB.append([c[0],c[1],hh+0.45])
+addz("B","Дахи адмінчастини, ліхтар і тераса",unary_union([wingW,wingE,centre,terr,step]).convex_hull,cellsB,205,997,WH,wang,depth=2.3)
 # естакади (положення приблизне)
+SEG=[]
 def deck(pts,h0,h1,w=9.0):
     q=[oldpx(*a) for a in pts]; n=len(q)-1
     for i in range(n):
         a,b=q[i],q[i+1]; hh=h0+(h1-h0)*(i+0.5)/n
-        part(LineString([a,b]).buffer(w/2,cap_style=2),0.8,0x9a9da1,"",hh-0.8,0x777a7e)
+        part(LineString([a,b]).buffer(w/2,cap_style=2),0.8,0x9a9da1,"",hh-0.8,0x777a7e); SEG.append((a,b,hh,w))
         if hh>2.5: part(box(a[0]-0.6,a[1]-0.6,a[0]+0.6,a[1]+0.6),round(hh-0.8,1),0xa9aaa6,"")
 deck([(905,690),(940,628),(1000,588),(1080,574),(1180,590),(1265,640),(1300,715),(1285,800),(1245,885)],5.8,5.8)
 deck([(430,1318),(520,1282),(620,1246),(735,1200)],0.8,5.8)
@@ -139,7 +142,7 @@ def perp_south(a):
     return round((math.degrees(math.atan2(v[0],-v[1]))%360)-180)
 Z={z["key"]:z for z in zones}
 Z["A"].update(sc="both",ori=[(3,-53,nA[0]),(3,127,nA[1])],note="по схилах, уздовж гребеня")
-Z["B"].update(sc="both",ori=[(10,0,1)],k=0.97,note="ряди 10° на південь")
+Z["B"].update(sc="both",ori=[(3,0,1)],note="щільно, майже пласко; над ліхтарем і терасою — на рамі")
 for k in "CDE": Z[k].update(sc="base",ori=[(7,perp_south(Z[k]["ang"]),1)],note="ряди навісів із проїздами")
 # існуючий навіс перонів
 canW=P((622,952),(712,1192),(688,1201),(598,961))
@@ -147,8 +150,8 @@ cG=[[c[0],c[1],5.75] for c in fill(canW,main_angle(canW),ML,0.3,MW+GAP,0.1,1,2)]
 addz("G","Існуючий навіс перонів (захід)",canW,cG,205,997,5.6,main_angle(canW),depth=2.3); zones[-1].update(sc="both",ori=[(3,90,1)],note="по площині навісу")
 # північний блок і башта
 eq=unary_union([sq(q[0],q[1],1.6,1.6,0) for q in ((735,880),(760,885),(785,890),(812,895),(838,905),(750,865),(800,870))]).buffer(1.2)
-cH=[[c[0],c[1],14.45] for c in fill(big(north.difference(eq)),main_angle(north),ML,0.9,MW+GAP,1.5)]+[[c[0],c[1],22.45] for c in fill(tower,main_angle(tower),ML,0.9,MW+GAP,1.5)]
-addz("H","Північний блок і башта",unary_union([north,tower]).convex_hull,cH,205,997,14,main_angle(north),depth=2.3); zones[-1].update(sc="both",ori=[(10,0,1)],k=0.97,note="між обладнанням")
+cH=[[c[0],c[1],14.45] for c in fill(big(north.difference(eq)),main_angle(north),ML,0.3,MW+GAP,0.5)]+[[c[0],c[1],22.45] for c in fill(tower,main_angle(tower),ML,0.3,MW+GAP,0.5)]
+addz("H","Північний блок і башта",unary_union([north,tower]).convex_hull,cH,205,997,14,main_angle(north),depth=2.3); zones[-1].update(sc="both",ori=[(3,0,1)],note="щільно, між обладнанням")
 # навіс над пероном уздовж залу
 stripF=P(Np,Wp_,(816,841),(1006,616))
 cF=[[c[0],c[1],5.5] for c in fill(stripF,main_angle(stripF),ML,0.4,MW+GAP,0.4,1,4)]
@@ -159,7 +162,7 @@ cJ=[]
 for i,g in enumerate(ent):
     hh=4.6 if i==3 else 3.8
     part(g,hh,0xd9d6cf if i<3 else 0xc94a3f,"",0,0xbfc4c9)
-    cJ+=[[c[0],c[1],hh+0.3] for c in fill(g,main_angle(g),ML,0.15,MW+GAP,0.4)]
+    cJ+=[[c[0],c[1],hh+0.3] for c in fill(g,main_angle(g),ML,0.02,MW+GAP,0.1)]
 addz("J","Дахи на в'їзді й біля входу",unary_union(ent).convex_hull,cJ,205,997,3.8,main_angle(ent[0]),depth=2.3); zones[-1].update(sc="both",ori=[(3,0,1)],note="по площині дахів")
 zones[-1]["area"]=round(sum(g.area for g in ent))
 # півколо навколо залу (якщо це дах над стоянками, а не проїзд)
@@ -170,6 +173,12 @@ for a,b in zip(arc,arc[1:]):
     cK+=[[c[0],c[1],6.2] for c in fill(g,math.degrees(math.atan2(b[1]-a[1],b[0]-a[0])),ML,0.15,MW+GAP,0.3)]
 addz("K","Півколо навколо залу",LineString(arc).buffer(4.3),cK,205,997,6.0,0,depth=2.3); zones[-1].update(sc="max",ori=[(3,0,1)],note="якщо зверху дах, а не проїзд")
 zones[-1]["area"]=round(aK)
+cL=[]; aL=0
+for a,b,hh,w in SEG[-3:]:
+    g=LineString([a,b]).buffer(w/2,cap_style=2); aL+=g.area
+    cL+=[[c[0],c[1],round(hh+0.3,2)] for c in fill(g,math.degrees(math.atan2(b[1]-a[1],b[0]-a[0])),ML,0.02,MW+GAP,0.2)]
+addz("L","Дах над в'їздом (довга споруда з південного заходу)",big(unary_union([LineString([a,b]).buffer(w/2+0.2,cap_style=2) for a,b,hh,w in SEG[-3:]])),cL,205,997,4,0); zones[-1].update(sc="both",ori=[(3,0,1)],note="якщо це дах, а не проїзд")
+zones[-1]["area"]=round(aL)
 # максимальні карпорти: суцільні навіси
 bearly=unary_union([Polygon([ll(q) for q in e["geometry"]]) for e in E if e["type"]=="way" and "building" in e.get("tags",{}) and e["geometry"][0]==e["geometry"][-1] and e["id"]!=823445052]).buffer(2)
 for key,i,name,depth,h,ins in (("C2",503943993,"Майданчик автобусів — суцільні навіси",13,5.5,2),("D2",152219807,"Стоянка зліва — суцільні навіси",10.5,3.2,1.5),("E2",152219798,"Мала стоянка — суцільні навіси",5.5,3.2,1)):
