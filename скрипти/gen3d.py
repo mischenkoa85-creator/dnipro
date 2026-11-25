@@ -24,7 +24,8 @@ station=poly(823445052)
 hall=Polygon([oldpx(*p) for p in [(1055,660),(1235,910),(905,1065),(860,870)]])
 admin=station.difference(hall.buffer(0.5))
 if admin.geom_type!="Polygon": admin=max(admin.geoms,key=lambda g:g.area)
-def fill(pg, ang, depth, aisle, seg, inset, skip=1):
+ML,MW,MP,GAP=2.384,1.303,0.73,0.02
+def fill(pg, ang, depth, aisle, seg, inset, skip=1, block=1):
     c=pg.centroid; r=affinity.rotate(pg.buffer(-inset),-ang,origin=c)
     if r.is_empty: return []
     x0,y0,x1,y1=r.bounds; res=[]; y=y0+0.05; k=0
@@ -36,7 +37,7 @@ def fill(pg, ang, depth, aisle, seg, inset, skip=1):
                 if r.contains(b):
                     cc=affinity.rotate(b,ang,origin=c).centroid; res.append([round(cc.x,2),round(cc.y,2)])
                 x+=seg
-        y+=depth+aisle; k+=1
+        k+=1; y+=depth+(aisle if k%block==0 else GAP)
     return res
 def main_angle(pg):
     p=list(pg.minimum_rotated_rectangle.exterior.coords)
@@ -44,15 +45,15 @@ def main_angle(pg):
     return math.degrees(math.atan2(e[1][1]-e[0][1], e[1][0]-e[0][0]))
 zones=[]
 def add(key,name,pg,kind,depth,aisle,seg,inset,dens,yld,h,skip=1):
-    a=main_angle(pg); cells=fill(pg,a,depth,aisle,seg,inset,skip)
-    area=len(cells)*depth*seg; kw=area*dens/1000
-    zones.append(dict(key=key,name=name,kind=kind,ang=round(a,1),depth=depth,seg=seg,h=h,cells=cells,
+    a=main_angle(pg); cells=fill(pg,a,ML,aisle,MW+GAP,inset,1,skip)
+    area=len(cells)*ML*MW; kw=len(cells)*MP; depth,seg=ML,MW
+    zones.append(dict(n=len(cells),key=key,name=name,kind=kind,ang=round(a,1),depth=depth,seg=seg,h=h,cells=cells,
         area=round(pg.area),parea=round(area),kw=round(kw),mwh=round(kw*yld/1000),
         outline=[[round(x,1),round(y,1)] for x,y in pg.exterior.coords]))
     print(key,round(pg.area),round(area),round(kw),round(kw*yld/1000))
-add("C","Навіси над майданчиком автобусів",poly(503943993),"canopy",13,8,2.4,2,210,1040,5.5)
-add("D","Навіси над стоянкою зліва",poly(152219807),"canopy",10.5,6.5,2.4,1.5,210,1040,3.2)
-add("E","Навіси над малою стоянкою",poly(152219798),"canopy",5.5,6.5,2.4,1,210,1040,3.2)
+add("C","Навіси над майданчиком автобусів",poly(503943993),"canopy",13,8,2.4,2,210,1040,5.5,skip=5)
+add("D","Навіси над стоянкою зліва",poly(152219807),"canopy",10.5,6.5,2.4,1.5,210,1040,3.2,skip=4)
+add("E","Навіси над малою стоянкою",poly(152219798),"canopy",5.5,6.5,2.4,1,210,1040,3.2,skip=2)
 # ---------- детальний вокзал (за супутником і панорамами 2015 р.) ----------
 from shapely.geometry import LineString, MultiPolygon
 def P(*pts): return Polygon([oldpx(*q) for q in pts])
@@ -91,12 +92,12 @@ def big(g): return g if g.geom_type=="Polygon" else max(g.geoms,key=lambda q:q.a
 cellsA=[]
 nA=[]
 for pl,dm in ((big(planeSE),dSE),(big(planeNW),dNW)):
-    nA.append(len(fill(pl,rang,2.3,0.2,2.4,1.5)))
-    for c in fill(pl,rang,2.3,0.2,2.4,1.5):
+    nA.append(len(fill(pl,rang,ML,0.3,MW+GAP,1.5)))
+    for c in fill(pl,rang,ML,0.3,MW+GAP,1.5):
         d=ridge.distance(Point(c)); cellsA.append([c[0],c[1],round(T+2-2*min(1,d/dm)+0.35,2)])
 def addz(key,name,pg,cells,dens,yld,h,ang,kind="roof",depth=4.6,seg=2.4):
-    area=len(cells)*depth*seg; kw=area*dens/1000
-    zones.append(dict(key=key,name=name,kind=kind,ang=round(ang,1),depth=depth,seg=seg,h=h,cells=cells,area=round(pg.area),parea=round(area),kw=round(kw),mwh=round(kw*yld/1000),outline=[[round(x,1),round(y,1)] for x,y in pg.exterior.coords]))
+    area=len(cells)*ML*MW; kw=len(cells)*MP; depth,seg=ML,MW
+    zones.append(dict(n=len(cells),key=key,name=name,kind=kind,ang=round(ang,1),depth=depth,seg=seg,h=h,cells=cells,area=round(pg.area),parea=round(area),kw=round(kw),mwh=round(kw*yld/1000),outline=[[round(x,1),round(y,1)] for x,y in pg.exterior.coords]))
     print(key,round(pg.area),round(area),round(kw),round(kw*yld/1000))
 addz("A","Дах залу (два схили)",hall,cellsA,205,997,T,rang,depth=2.3)
 # адмінчастина
@@ -119,7 +120,7 @@ import random as _r; _r.seed(5)
 for q in ((735,880),(760,885),(785,890),(812,895),(838,905),(750,865),(800,870)): part(sq(q[0],q[1],1.6,1.6,0),1.1,0xb9bdc2,"",14)
 cellsB=[]
 for pg,hh in ((wingW,WH),(wingE,WH),(centre,CH)):
-    for c in fill(pg,main_angle(pg),2.3,0.9,2.4,1.5): cellsB.append([c[0],c[1],hh+0.45])
+    for c in fill(pg,main_angle(pg),ML,0.9,MW+GAP,1.5): cellsB.append([c[0],c[1],hh+0.45])
 addz("B","Дахи адмінчастини",unary_union([wingW,wingE,centre]).convex_hull,cellsB,205,997,WH,wang,depth=2.3)
 # естакади (положення приблизне)
 def deck(pts,h0,h1,w=9.0):
@@ -142,15 +143,15 @@ Z["B"].update(sc="both",ori=[(10,0,1)],k=0.97,note="ряди 10° на півд�
 for k in "CDE": Z[k].update(sc="base",ori=[(7,perp_south(Z[k]["ang"]),1)],note="ряди навісів із проїздами")
 # існуючий навіс перонів
 canW=P((622,952),(712,1192),(688,1201),(598,961))
-cG=[[c[0],c[1],5.75] for c in fill(canW,main_angle(canW),2.3,0.15,2.4,0.3)]
+cG=[[c[0],c[1],5.75] for c in fill(canW,main_angle(canW),ML,0.3,MW+GAP,0.1,1,2)]
 addz("G","Існуючий навіс перонів (захід)",canW,cG,205,997,5.6,main_angle(canW),depth=2.3); zones[-1].update(sc="both",ori=[(3,90,1)],note="по площині навісу")
 # північний блок і башта
 eq=unary_union([sq(q[0],q[1],1.6,1.6,0) for q in ((735,880),(760,885),(785,890),(812,895),(838,905),(750,865),(800,870))]).buffer(1.2)
-cH=[[c[0],c[1],14.45] for c in fill(big(north.difference(eq)),main_angle(north),2.3,0.9,2.4,1.5)]+[[c[0],c[1],22.45] for c in fill(tower,main_angle(tower),2.3,0.9,2.4,1.5)]
+cH=[[c[0],c[1],14.45] for c in fill(big(north.difference(eq)),main_angle(north),ML,0.9,MW+GAP,1.5)]+[[c[0],c[1],22.45] for c in fill(tower,main_angle(tower),ML,0.9,MW+GAP,1.5)]
 addz("H","Північний блок і башта",unary_union([north,tower]).convex_hull,cH,205,997,14,main_angle(north),depth=2.3); zones[-1].update(sc="both",ori=[(10,0,1)],k=0.97,note="між обладнанням")
 # навіс над пероном уздовж залу
 stripF=P(Np,Wp_,(816,841),(1006,616))
-cF=[[c[0],c[1],5.5] for c in fill(stripF,main_angle(stripF),5.5,0.3,2.4,0.4)]
+cF=[[c[0],c[1],5.5] for c in fill(stripF,main_angle(stripF),ML,0.4,MW+GAP,0.4,1,4)]
 addz("F","Новий навіс над пероном уздовж залу",stripF,cF,210,1040,5.5,main_angle(stripF),kind="canopy",depth=5.5); zones[-1].update(sc="max",ori=[(7,perp_south(main_angle(stripF)),1)],note="смуга 12 м")
 # дахи на в'їзді й біля входу (одноповерхові галереї, каси, навіс входу)
 ent=[P((1045,1210),(1240,1150),(1250,1185),(1052,1245)),P((835,1300),(1005,1238),(1012,1262),(848,1328)),P((1030,1150),(1040,1120),(1160,1080),(1166,1110)),P((875,1195),(945,1160),(960,1185),(890,1215))]
@@ -158,7 +159,7 @@ cJ=[]
 for i,g in enumerate(ent):
     hh=4.6 if i==3 else 3.8
     part(g,hh,0xd9d6cf if i<3 else 0xc94a3f,"",0,0xbfc4c9)
-    cJ+=[[c[0],c[1],hh+0.3] for c in fill(g,main_angle(g),2.3,0.15,2.4,0.4)]
+    cJ+=[[c[0],c[1],hh+0.3] for c in fill(g,main_angle(g),ML,0.15,MW+GAP,0.4)]
 addz("J","Дахи на в'їзді й біля входу",unary_union(ent).convex_hull,cJ,205,997,3.8,main_angle(ent[0]),depth=2.3); zones[-1].update(sc="both",ori=[(3,0,1)],note="по площині дахів")
 zones[-1]["area"]=round(sum(g.area for g in ent))
 # півколо навколо залу (якщо це дах над стоянками, а не проїзд)
@@ -166,14 +167,14 @@ arc=[oldpx(*a) for a in [(905,690),(940,628),(1000,588),(1080,574),(1180,590),(1
 cK=[]; aK=0
 for a,b in zip(arc,arc[1:]):
     g=LineString([a,b]).buffer(4.3,cap_style=2); aK+=g.area
-    cK+=[[c[0],c[1],6.2] for c in fill(g,math.degrees(math.atan2(b[1]-a[1],b[0]-a[0])),2.3,0.15,2.4,0.3)]
+    cK+=[[c[0],c[1],6.2] for c in fill(g,math.degrees(math.atan2(b[1]-a[1],b[0]-a[0])),ML,0.15,MW+GAP,0.3)]
 addz("K","Півколо навколо залу",LineString(arc).buffer(4.3),cK,205,997,6.0,0,depth=2.3); zones[-1].update(sc="max",ori=[(3,0,1)],note="якщо зверху дах, а не проїзд")
 zones[-1]["area"]=round(aK)
 # максимальні карпорти: суцільні навіси
 bearly=unary_union([Polygon([ll(q) for q in e["geometry"]]) for e in E if e["type"]=="way" and "building" in e.get("tags",{}) and e["geometry"][0]==e["geometry"][-1] and e["id"]!=823445052]).buffer(2)
 for key,i,name,depth,h,ins in (("C2",503943993,"Майданчик автобусів — суцільні навіси",13,5.5,2),("D2",152219807,"Стоянка зліва — суцільні навіси",10.5,3.2,1.5),("E2",152219798,"Мала стоянка — суцільні навіси",5.5,3.2,1)):
     pg=big(poly(i).difference(bearly)); a=main_angle(poly(i))
-    cc=fill(pg,a,depth,0.6,2.4,ins)
+    cc=fill(pg,a,ML,0.6,MW+GAP,ins,1,{13:5,10.5:4,5.5:2}[depth])
     addz(key,name,poly(i),cc,210,1040,h,a,kind="canopy",depth=depth); zones[-1].update(sc="max",ori=[(7,perp_south(a),1)],note="перекриває і проїзди")
 zones.sort(key=lambda z:z["key"])
 H={"garages":3,"roof":4,"warehouse":6,"detached":5,"apartments":16,"church":14,"commercial":9,"office":20,"industrial":8,"retail":8}
@@ -280,11 +281,11 @@ for z in zones:
     for s in ("base","max"):
         if z["sc"] in (s,"both"):
             for i in range(12): months[s][i]+=z["kw"]*mm2[i]/1000
-    print(z["key"],z["name"],"|",z["area"],"м2 | панелі",z["parea"],"м2 |",z["kw"],"кВт |",z["spec"],"кВт·год/кВт | тінь",z["shade"],"% |",z["mwh"],"МВт·год |",z["sc"])
+    print(z["key"],z["name"],"|",z["area"],"м2 |",z["n"],"шт | панелі",z["parea"],"м2 |",z["kw"],"кВт |",z["spec"],"кВт·год/кВт | тінь",z["shade"],"% |",z["mwh"],"МВт·год |",z["sc"])
     del z["ori"]
 months={s:[round(v,1) for v in months[s]] for s in months}
 for s in ("base","max"):
-    print(s,"кВт",sum(z["kw"] for z in zones if z["sc"] in (s,"both")),"МВт·год",round(sum(months[s])),"червень/доба",round(months[s][5]/30,1),"грудень/доба",round(months[s][11]/31,1))
+    print(s,"шт",sum(z["n"] for z in zones if z["sc"] in (s,"both")),"кВт",sum(z["kw"] for z in zones if z["sc"] in (s,"both")),"МВт·год",round(sum(months[s])),"червень/доба",round(months[s][5]/30,1),"грудень/доба",round(months[s][11]/31,1))
 data=dict(months=months,parts=parts,hallroof=hallroof,tower=ltower,sign=[round(ac.x,1),round(ac.y,1)],w=round(Wp*mpp,1),h=round(Hp*mpp,1),zones=zones,buildings=bl,trees=trees,lines=lines,labels=labels,
   
   month_roof=[22,39,75,104,136,146,148,133,95,58,26,16], month_can=[28,47,84,112,142,150,154,144,106,70,33,21])

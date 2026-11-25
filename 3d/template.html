@@ -76,7 +76,7 @@ h2{font:600 13px var(--head);margin:0 0 6px}
 <tr><td>Тінь</td><td>Висотки стоять на сході й південному сході: можуть затіняти дах залу вранці взимку — перевіряється повзунком часу</td></tr>
 <tr><td>Електрика</td><td>Підстанції та лінії живлення на відкритих картах не позначені — уточнюється</td></tr>
 </tbody></table></div></div>
-<p class="note">Базовий сценарій — навіси рядами з проїздами; максимальний — суцільні навіси над стоянками, новий навіс уздовж залу, північний блок і башта. Питомий виробіток — PVGIS для кожної площини; тінь від будівель і дерев порахована по моделі для 12 місяців. Концепція за супутниковим знімком. Контури — з OpenStreetMap, висоти будівель оцінено, генерація — PVGIS для Дніпра. Належність стоянок, несуча здатність даху і місця обладнання уточнюються.</p>
+<p class="note">Панель — ZNSHINE ZXN8-BD132-730, 730 Вт, 2384 × 1303 мм; кожна панель у моделі покладена поштучно. Базовий сценарій — навіси рядами з проїздами; максимальний — суцільні навіси над стоянками, новий навіс уздовж залу, північний блок і башта. Питомий виробіток — PVGIS для кожної площини; тінь від будівель і дерев порахована по моделі для 12 місяців. Концепція за супутниковим знімком. Контури — з OpenStreetMap, висоти будівель оцінено, генерація — PVGIS для Дніпра. Належність стоянок, несуча здатність даху і місця обладнання уточнюються.</p>
   </div>
 </div>
 
@@ -139,7 +139,7 @@ D.zones.forEach(z=>{
   G.add(im);
   if(z.kind=='canopy'){
     const pg=new THREE.CylinderGeometry(0.18,0.18,z.h,8);
-    const idx=z.cells.map((c,i)=>i).filter(i=>i%3==0);
+    const idx=z.cells.map((c,i)=>i).filter(i=>i%28==0);
     const pm=new THREE.InstancedMesh(pg,postM,idx.length);pm.castShadow=true;
     idx.forEach((ci,k)=>{const c=z.cells[ci];o.position.set(c[0],z.h/2,c[1]);o.rotation.set(0,0,0);o.updateMatrix();pm.setMatrixAt(k,o.matrix)});
     G.add(pm);
@@ -210,10 +210,10 @@ function nums(){
   const kw=zs.reduce((s,z)=>s+z.kw,0),mwh=Math.round(mon.reduce((s,v)=>s+v,0));
   ZG.forEach(g=>g.visible=g.userData.sc==SC||g.userData.sc=='both');
   LG.children.forEach(s=>{if(s.userData.sc)s.visible=s.userData.sc==SC||s.userData.sc=='both'});
-  document.getElementById('sum').innerHTML=`Панелі <b>${f(kw)} кВт</b> · за рік <b>${f(mwh)} МВт·год</b> · червень <b>${f(Math.round(mon[5]/30*10)/10)}</b>, грудень <b>${f(Math.round(mon[11]/31*10)/10)} МВт·год за добу</b>`;
-  document.getElementById('tb').innerHTML='<thead><tr><th>Зона</th><th>Що це</th><th>Площа, м²</th><th>Панелі, м²</th><th>кВт</th><th>кВт·год/кВт</th><th>Тінь, %</th><th>МВт·год/рік</th><th>Як покладено</th></tr></thead><tbody>'+
-   zs.map(z=>`<tr><td><span class="sw" style="background:${css(z.kind)}"></span>${z.key}</td><td>${z.name}</td><td>${f(z.area)}</td><td>${f(z.parea)}</td><td>${f(z.kw)}</td><td>${f(z.spec)}</td><td>${f(z.shade)}</td><td>${f(z.mwh)}</td><td style="text-align:left">${z.note||''}</td></tr>`).join('')+
-   `</tbody><tfoot><tr><td></td><td>Разом</td><td></td><td>${f(zs.reduce((s,z)=>s+z.parea,0))}</td><td>${f(kw)}</td><td></td><td></td><td>${f(mwh)}</td><td></td></tr></tfoot>`;
+  document.getElementById('sum').innerHTML=`<b>${f(zs.reduce((s,z)=>s+z.n,0))}</b> панелей по 730 Вт · <b>${f(kw)} кВт</b> · за рік <b>${f(mwh)} МВт·год</b> · червень <b>${f(Math.round(mon[5]/30*10)/10)}</b>, грудень <b>${f(Math.round(mon[11]/31*10)/10)} МВт·год за добу</b>`;
+  document.getElementById('tb').innerHTML='<thead><tr><th>Зона</th><th>Що це</th><th>Площа, м²</th><th>Панелей, шт</th><th>кВт</th><th>кВт·год/кВт</th><th>Тінь, %</th><th>МВт·год/рік</th><th>Як покладено</th></tr></thead><tbody>'+
+   zs.map(z=>`<tr><td><span class="sw" style="background:${css(z.kind)}"></span>${z.key}</td><td>${z.name}</td><td>${f(z.area)}</td><td>${f(z.n)}</td><td>${f(z.kw)}</td><td>${f(z.spec)}</td><td>${f(z.shade)}</td><td>${f(z.mwh)}</td><td style="text-align:left">${z.note||''}</td></tr>`).join('')+
+   `</tbody><tfoot><tr><td></td><td>Разом</td><td></td><td>${f(zs.reduce((s,z)=>s+z.n,0))}</td><td>${f(kw)}</td><td></td><td></td><td>${f(mwh)}</td><td></td></tr></tfoot>`;
   const mx=Math.max(...D.months.max);
   document.getElementById('months').innerHTML=mon.map((v,i)=>`<div><span>${Math.round(v)}</span><i style="height:${Math.round(v/mx*70)}px"></i>${MN[i]}</div>`).join('');
   dirty=true;
