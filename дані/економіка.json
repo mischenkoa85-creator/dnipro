@@ -1,0 +1,91 @@
+{
+ "assumptions": {
+  "panel": 0.09998704621263643,
+  "inverter": 0.030577777777777777,
+  "cable": 0.03035444947209653,
+  "mount_roof": 0.019683257918552036,
+  "mount_flat": 0.04,
+  "frame_skylight": 0.15,
+  "canopy_bus": 0.3,
+  "canopy_car": 0.2,
+  "delivery": 0.025,
+  "install_roof": 0.12,
+  "install_canopy": 0.1,
+  "grid": 0.05,
+  "services": 0.1,
+  "reserve": 0.1,
+  "price": 160.0,
+  "om": 0.015,
+  "degr": 0.004,
+  "rate": 0.1,
+  "years": 20
+ },
+ "result": {
+  "base": {
+   "n": 4246,
+   "kw": 3100,
+   "mwh": 3212,
+   "eq": 498850,
+   "dl": 77500,
+   "st": 1084112,
+   "srv": 166046,
+   "res": 182651,
+   "tot": 2009158,
+   "perW": 0.648,
+   "low": {
+    "price": 120,
+    "effect": 385464,
+    "payback": 5.7,
+    "npv": 932159,
+    "irr": 16.5
+   },
+   "mid": {
+    "price": 160.0,
+    "effect": 513952,
+    "payback": 4.2,
+    "npv": 1998123,
+    "irr": 23.3
+   },
+   "high": {
+    "price": 200,
+    "effect": 642440,
+    "payback": 3.3,
+    "npv": 3064088,
+    "irr": 29.9
+   }
+  },
+  "max": {
+   "n": 6195,
+   "kw": 4522,
+   "mwh": 4667,
+   "eq": 727677,
+   "dl": 113050,
+   "st": 1646612,
+   "srv": 248734,
+   "res": 273607,
+   "tot": 3009680,
+   "perW": 0.666,
+   "low": {
+    "price": 120,
+    "effect": 560076,
+    "payback": 5.9,
+    "npv": 1252486,
+    "irr": 15.8
+   },
+   "mid": {
+    "price": 160.0,
+    "effect": 746768,
+    "payback": 4.3,
+    "npv": 2801324,
+    "irr": 22.5
+   },
+   "high": {
+    "price": 200,
+    "effect": 933460,
+    "payback": 3.4,
+    "npv": 4350161,
+    "irr": 28.9
+   }
+  }
+ }
+}

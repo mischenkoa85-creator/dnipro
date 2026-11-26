@@ -67,6 +67,7 @@ h2{font:600 13px var(--head);margin:0 0 6px}
   </div>
   <div id="more" hidden>
     <div><h2>Зони</h2><div class="tw"><table id="tb"></table></div></div>
+    <div><h2>Економіка (приблизно, USD без ПДВ)</h2><div class="tw"><table id="ec"></table></div></div>
     <div><h2>Генерація по місяцях, МВт·год</h2><div class="months" id="months"></div></div>
     <div><h2>Оточення</h2><div class="tw"><table><tbody>
 <tr><td>Північ</td><td>Залізничні колії станції Дніпро-Головний, зелена смуга вздовж колій</td></tr>
@@ -76,7 +77,7 @@ h2{font:600 13px var(--head);margin:0 0 6px}
 <tr><td>Тінь</td><td>Висотки стоять на сході й південному сході: можуть затіняти дах залу вранці взимку — перевіряється повзунком часу</td></tr>
 <tr><td>Електрика</td><td>Підстанції та лінії живлення на відкритих картах не позначені — уточнюється</td></tr>
 </tbody></table></div></div>
-<p class="note">Панель — ZNSHINE ZXN8-BD132-730, 730 Вт, 2384 × 1303 мм; кожна панель у моделі покладена поштучно. Базовий сценарій — навіси рядами з проїздами; максимальний — суцільні навіси над стоянками, новий навіс уздовж залу, північний блок і башта. Питомий виробіток — PVGIS для кожної площини; тінь від будівель і дерев порахована по моделі для 12 місяців. Концепція за супутниковим знімком. Контури — з OpenStreetMap, висоти будівель оцінено, генерація — PVGIS для Дніпра. Належність стоянок, несуча здатність даху і місця обладнання уточнюються.</p>
+<p class="note">Економіка: ціни панелей, інверторів і монтажу — з КП E-Systems для Форелі й Агро-Еталону; навіси над автобусами 0,30 $/Вт і над легковими 0,20 $/Вт, приєднання 0,05 $/Вт — оцінка. Ефект рахується так, ніби вся енергія йде на власні потреби й зарядку; надлишок у мережу дешевший. Накопичувач і зарядні станції не враховані. Панель — ZNSHINE ZXN8-BD132-730, 730 Вт, 2384 × 1303 мм; кожна панель у моделі покладена поштучно. Базовий сценарій — навіси рядами з проїздами; максимальний — суцільні навіси над стоянками, новий навіс уздовж залу, північний блок і башта. Питомий виробіток — PVGIS для кожної площини; тінь від будівель і дерев порахована по моделі для 12 місяців. Концепція за супутниковим знімком. Контури — з OpenStreetMap, висоти будівель оцінено, генерація — PVGIS для Дніпра. Належність стоянок, несуча здатність даху і місця обладнання уточнюються.</p>
   </div>
 </div>
 
@@ -84,6 +85,7 @@ h2{font:600 13px var(--head);margin:0 0 6px}
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
 <script>
 const D=/*DATA*/;
+const EC=/*ECON*/;
 const SAT="data:image/jpeg;base64,/*SAT*/";
 const cv=document.getElementById('c');
 const MOB=Math.min(innerWidth,innerHeight)<700;
@@ -216,6 +218,18 @@ function nums(){
    `</tbody><tfoot><tr><td></td><td>Разом</td><td></td><td>${f(zs.reduce((s,z)=>s+z.n,0))}</td><td>${f(kw)}</td><td></td><td></td><td>${f(mwh)}</td><td></td></tr></tfoot>`;
   const mx=Math.max(...D.months.max);
   document.getElementById('months').innerHTML=mon.map((v,i)=>`<div><span>${Math.round(v)}</span><i style="height:${Math.round(v/mx*70)}px"></i>${MN[i]}</div>`).join('');
+  const e=EC.result[SC],m=x=>'$'+f(Math.round(x/1000))+' тис.';
+  document.getElementById('ec').innerHTML=`<tbody>
+<tr><td>Обладнання (панелі, інвертори, кабелі)</td><td>${m(e.eq)}</td></tr>
+<tr><td>Доставка і розмитнення</td><td>${m(e.dl)}</td></tr>
+<tr><td>Навіси, кріплення, монтаж, приєднання</td><td>${m(e.st)}</td></tr>
+<tr><td>Проєкт і супровід</td><td>${m(e.srv)}</td></tr>
+<tr><td>Резерв 10 %</td><td>${m(e.res)}</td></tr>
+<tr><td><b>Разом</b> (${f(e.perW)} $ за Вт)</td><td><b>${m(e.tot)}</b></td></tr>
+<tr><td>Ефект за рік при ${e.mid.price} $/МВт·год (≈7 грн/кВт·год)</td><td>${m(e.mid.effect)}</td></tr>
+<tr><td>Окупність, років (при 120 · 160 · 200 $/МВт·год)</td><td>${f(e.low.payback)} · <b>${f(e.mid.payback)}</b> · ${f(e.high.payback)}</td></tr>
+<tr><td>NPV за 20 років, ставка 10 %</td><td>${m(e.mid.npv)}</td></tr>
+<tr><td>IRR</td><td>${f(e.mid.irr)} %</td></tr></tbody>`;
   dirty=true;
 }
 const scb=document.getElementById('scen');
